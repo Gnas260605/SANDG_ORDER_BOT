@@ -47,6 +47,17 @@ module.exports = {
       if (interaction.isButton()) {
         const customId = interaction.customId;
 
+        // Nút bấm trên Order Panel cố định
+        if (customId === CUSTOM_IDS.OPEN_ORDER_MENU) {
+          await require("../commands/datdon").execute(interaction);
+          return;
+        }
+
+        if (customId === CUSTOM_IDS.SHOW_PRICE_LIST) {
+          await require("../commands/banggia").execute(interaction);
+          return;
+        }
+
         // Nút xác nhận/hủy từ embed preview
         if (customId.startsWith(CUSTOM_IDS.CONFIRM_ORDER) || customId === CUSTOM_IDS.CANCEL_ORDER) {
           await handleOrderConfirmation(interaction);

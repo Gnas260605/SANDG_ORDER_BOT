@@ -40,7 +40,7 @@ const COLORS = {
 
 const BRANDING = {
   FOOTER_TEXT: "SandG • Uy tín – Nhanh chóng – Hỗ trợ 24/7",
-  DEFAULT_LOGO: "https://i.imgur.com/8Q898Zp.png",
+  DEFAULT_LOGO: "https://cdn-icons-png.flaticon.com/512/686/686589.png",
 };
 
 const CUSTOM_IDS = {
@@ -51,6 +51,10 @@ const CUSTOM_IDS = {
   MODAL_INPUT_NOTE: "input_note",
   CONFIRM_ORDER: "sandg_btn_confirm_order",
   CANCEL_ORDER: "sandg_btn_cancel_order",
+  
+  // Panel Custom IDs
+  OPEN_ORDER_MENU: "sandg_open_order_menu",
+  SHOW_PRICE_LIST: "sandg_show_price_list",
   
   // Ticket Actions
   BTN_ACCEPT: "sandg_ticket_accept",

@@ -12,7 +12,7 @@ function getAllJsFiles(dirPath, arrayOfFiles = []) {
   files.forEach((file) => {
     const fullPath = path.join(dirPath, file);
     if (fs.statSync(fullPath).isDirectory()) {
-      if (file !== "node_modules" && file !== ".git") {
+      if (file !== "node_modules" && file !== ".git" && file !== "data" && file !== "transcripts") {
         getAllJsFiles(fullPath, arrayOfFiles);
       }
     } else if (file.endsWith(".js")) {
