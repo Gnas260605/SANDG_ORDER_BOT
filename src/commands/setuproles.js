@@ -26,20 +26,21 @@ module.exports = {
       });
     }
 
-    await interaction.deferReply();
+    await interaction.deferReply({ ephemeral: true });
 
     const guild = interaction.guild;
 
+    // Dùng "colors" (không phải "color") theo discord.js v14+
     const rolesToCreate = [
       {
         name: "👑 Owner / Founder",
-        color: "#FF1744",
+        color: 0xFF1744,
         hoist: true,
         permissions: [PermissionsBitField.Flags.Administrator],
       },
       {
         name: "🛡️ Admin / Quản Trị",
-        color: "#FF9100",
+        color: 0xFF9100,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ManageChannels,
@@ -54,7 +55,7 @@ module.exports = {
       },
       {
         name: "👨‍💻 Staff / Cày Thuê Pro",
-        color: "#7C4DFF",
+        color: 0x7C4DFF,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ManageMessages,
@@ -67,7 +68,7 @@ module.exports = {
       },
       {
         name: "💎 VIP Client",
-        color: "#00E5FF",
+        color: 0x00E5FF,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -79,7 +80,7 @@ module.exports = {
       },
       {
         name: "🛒 Khách Hàng SandG",
-        color: "#00E676",
+        color: 0x00E676,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -89,7 +90,7 @@ module.exports = {
       },
       {
         name: "🔥 Dân Cày Chăm Chỉ",
-        color: "#FFEA00",
+        color: 0xFFEA00,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -98,7 +99,7 @@ module.exports = {
       },
       {
         name: "🎮 Roblox Player",
-        color: "#29B6F6",
+        color: 0x29B6F6,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -107,7 +108,7 @@ module.exports = {
       },
       {
         name: "⚡ Member / Thành Viên",
-        color: "#CFD8DC",
+        color: 0xCFD8DC,
         hoist: false,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -120,59 +121,70 @@ module.exports = {
     let existingCount = 0;
     let createdAdminRoleId = "";
     let createdStaffRoleId = "";
+    const errors = [];
 
-    try {
-      for (const roleConfig of rolesToCreate) {
-        const existingRole = guild.roles.cache.find((r) => r.name === roleConfig.name);
-        let role = existingRole;
+    for (const roleConfig of rolesToCreate) {
+      const existingRole = guild.roles.cache.find((r) => r.name === roleConfig.name);
+      let role = existingRole;
 
-        if (!existingRole) {
-          try {
-            role = await guild.roles.create({
-              name: roleConfig.name,
-              color: roleConfig.color,
-              hoist: roleConfig.hoist,
-              permissions: roleConfig.permissions,
-              reason: "Khởi tạo hệ thống Role phân quyền chuyên nghiệp SandG",
-            });
-            createdCount++;
-          } catch (err) {
-            logger.error(`Lỗi tạo role ${roleConfig.name}:`, err);
-          }
-        } else {
-          existingCount++;
+      if (!existingRole) {
+        try {
+          role = await guild.roles.create({
+            name: roleConfig.name,
+            color: roleConfig.color,
+            hoist: roleConfig.hoist,
+            permissions: roleConfig.permissions,
+            reason: "Khởi tạo hệ thống Role phân quyền chuyên nghiệp SandG",
+          });
+          createdCount++;
+          logger.info(`Đã tạo Role: ${role.name} (${role.id})`);
+        } catch (err) {
+          logger.error(`Lỗi tạo role ${roleConfig.name}:`, err);
+          errors.push(`• ${roleConfig.name}: ${err.message}`);
         }
-
-        if (role && roleConfig.name.includes("Admin")) createdAdminRoleId = role.id;
-        if (role && roleConfig.name.includes("Staff")) createdStaffRoleId = role.id;
+      } else {
+        existingCount++;
+        role = existingRole;
       }
 
-      if (createdAdminRoleId) process.env.ADMIN_ROLE_ID = createdAdminRoleId;
-      if (createdStaffRoleId) process.env.STAFF_ROLE_ID = createdStaffRoleId;
+      if (role && roleConfig.name.includes("Admin")) createdAdminRoleId = role.id;
+      if (role && roleConfig.name.includes("Staff")) createdStaffRoleId = role.id;
+    }
 
-      const successEmbed = createSuccessEmbed(
-        "🎭 HOÀN TẤT KHỞI TẠO BỘ VAI TRÒ CHUYÊN NGHIỆP!",
-        `Bot đã tạo và phân quyền thành công các Vai Trò cho Server:\n\n` +
-          `👑 **Owner / Founder** (Toàn quyền)\n` +
-          `🛡️ **Admin / Quản Trị** (Quản lý kênh & xử phạt)\n` +
-          `👨‍💻 **Staff / Cày Thuê Pro** (Tiếp nhận & cày đơn)\n` +
-          `💎 **VIP Client** (Khách hàng VIP)\n` +
-          `🛒 **Khách Hàng SandG** (Khách hàng đã đặt đơn)\n` +
-          `🔥 **Dân Cày Chăm Chỉ** & 🎮 **Roblox Player**\n\n` +
-          `📌 *Đã tạo mới: **${createdCount}** role | Đã có sẵn: **${existingCount}** role.*`
-      );
+    if (createdAdminRoleId) process.env.ADMIN_ROLE_ID = createdAdminRoleId;
+    if (createdStaffRoleId) process.env.STAFF_ROLE_ID = createdStaffRoleId;
 
-      await interaction.editReply({ embeds: [successEmbed] });
-    } catch (err) {
-      logger.error("Lỗi khi setup roles:", err);
+    if (errors.length > 0 && createdCount === 0) {
       await interaction.editReply({
         embeds: [
           createErrorEmbed(
             "❌ THIẾT LẬP THẤT BẠI",
-            `Không thể tạo Role. Hãy đảm bảo Bot có quyền **Quản Lý Vai Trò (Manage Roles)** và Role của Bot nằm ở trên cùng danh sách Roles!`
+            `Không thể tạo Role. Vui lòng:\n` +
+              `**1.** Vào **Cài đặt Server** → **Vai Trò** → Tìm Role Bot và bật **"Quản Lý Vai Trò"**\n` +
+              `**2.** Kéo Role của Bot lên **trên cùng** danh sách Roles\n` +
+              `**3.** Chạy lại lệnh \`/setup-roles\`\n\n` +
+              `Chi tiết lỗi:\n${errors.join("\n")}`
           ),
         ],
       });
+      return;
     }
+
+    await interaction.editReply({
+      embeds: [
+        createSuccessEmbed(
+          "🎭 HOÀN TẤT KHỞI TẠO BỘ VAI TRÒ CHUYÊN NGHIỆP!",
+          `Bot đã tạo và phân quyền thành công các Vai Trò cho Server:\n\n` +
+            `👑 **Owner / Founder** — Toàn quyền\n` +
+            `🛡️ **Admin / Quản Trị** — Quản lý kênh & xử phạt\n` +
+            `👨‍💻 **Staff / Cày Thuê Pro** — Tiếp nhận & cày đơn\n` +
+            `💎 **VIP Client** — Khách hàng VIP\n` +
+            `🛒 **Khách Hàng SandG** — Khách hàng thường\n` +
+            `🔥 **Dân Cày Chăm Chỉ** & 🎮 **Roblox Player** & ⚡ **Member**\n\n` +
+            `📌 Đã tạo mới: **${createdCount}** role | Đã có sẵn: **${existingCount}** role` +
+            (errors.length > 0 ? `\n\n⚠️ Một số role lỗi:\n${errors.join("\n")}` : "")
+        ),
+      ],
+    });
   },
 };
