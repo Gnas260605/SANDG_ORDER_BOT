@@ -47,16 +47,21 @@ function createTicketActionRows(status) {
 
   const btnCancel = new ButtonBuilder()
     .setCustomId(CUSTOM_IDS.BTN_CANCEL)
-    .setLabel("HUỶ ĐƠN")
+    .setLabel("🚫 HUỶ ĐƠN")
     .setStyle(ButtonStyle.Danger)
     .setDisabled(isFinished);
 
   const btnClose = new ButtonBuilder()
     .setCustomId(CUSTOM_IDS.BTN_CLOSE_TICKET)
-    .setLabel("ĐÓNG TICKET")
+    .setLabel("🔒 ĐÓNG TICKET & LƯU LOG")
     .setStyle(ButtonStyle.Secondary);
 
-  const row2 = new ActionRowBuilder().addComponents(btnCancel, btnClose);
+  const btnDelete = new ButtonBuilder()
+    .setCustomId(CUSTOM_IDS.BTN_DELETE_CHANNEL)
+    .setLabel("🗑️ XÓA KÊNH (ADMIN)")
+    .setStyle(ButtonStyle.Danger);
+
+  const row2 = new ActionRowBuilder().addComponents(btnCancel, btnClose, btnDelete);
 
   return [row1, row2];
 }

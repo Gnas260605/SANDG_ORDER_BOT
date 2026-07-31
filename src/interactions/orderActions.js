@@ -236,16 +236,16 @@ async function handleTicketActions(interaction) {
     return;
   }
 
-  // 9. NÚT XÓA KÊNH THỦ CÔNG (ADMIN ONLY)
+  // 9. NÚT XÓA KÊNH THỦ CÔNG (ADMIN & STAFF)
   if (customId === CUSTOM_IDS.BTN_DELETE_CHANNEL) {
-    if (!isAdmin(interaction.member)) {
+    if (!isAdmin(interaction.member) && !isStaff(interaction.member)) {
       return interaction.reply({
-        embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Administrator mới có quyền xóa kênh ticket.")],
+        embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Administrator hoặc Staff mới có quyền xóa kênh ticket.")],
         ephemeral: true,
       });
     }
 
-    await interaction.reply({ content: "🗑️ Kênh sẽ bị xóa trong 5 giây..." });
+    await interaction.reply({ content: "🗑️ Kênh Ticket sẽ bị xóa vĩnh viễn sau 5 giây..." });
     setTimeout(async () => {
       try {
         await channel.delete();
