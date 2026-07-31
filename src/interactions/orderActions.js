@@ -16,6 +16,7 @@ const {
 const {
   updateTicketInterface,
   lockTicketChannelPermissions,
+  unlockTicketChannelPermissions,
 } = require("../services/ticketService");
 const { sendTranscriptToLogChannel } = require("../services/transcriptService");
 const { isStaff, isAdmin } = require("../utils/permissions");
@@ -48,7 +49,7 @@ async function handleTicketActions(interaction) {
     await interaction.deferUpdate();
     await updateTicketInterface(channel, order.main_message_id, result.order);
     await channel.send({
-      content: `🔔 Nhân viên <@${interaction.user.id}> đã tiếp nhận đơn hàng **${result.order.order_code}**!`,
+      content: `🔔 Nhân viên <@${interaction.user.id}> đã tiếp nhận đơn hàng **${result.order.order_code}**! Quý khách vui lòng thanh toán theo hướng dẫn của Staff để mở kênh chat riêng.`,
     });
     return;
   }
@@ -70,10 +71,13 @@ async function handleTicketActions(interaction) {
       });
     }
 
+    // Mở quyền gửi tin nhắn cho khách hàng
+    await unlockTicketChannelPermissions(channel, order.customer_id);
+
     await interaction.deferUpdate();
     await updateTicketInterface(channel, order.main_message_id, result.order);
     await channel.send({
-      content: `💳 Trạng thái đơn hàng **${result.order.order_code}** đã cập nhật: **ĐÃ THANH TOÁN**.`,
+      content: `💳 **ĐÃ XÁC NHẬN THANH TOÁN!**\nKênh chat riêng đã được mở cho <@${order.customer_id}>. Quý khách vui lòng gửi **Tên tài khoản & Mật khẩu Roblox** tại đây để Nhân viên bắt đầu cày!`,
     });
     return;
   }

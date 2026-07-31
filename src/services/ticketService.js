@@ -87,10 +87,12 @@ async function createOrderTicketChannel(guild, orderData) {
       id: orderData.customer_id || orderData.customerId,
       allow: [
         PermissionFlagsBits.ViewChannel,
-        PermissionFlagsBits.SendMessages,
         PermissionFlagsBits.ReadMessageHistory,
         PermissionFlagsBits.EmbedLinks,
         PermissionFlagsBits.AttachFiles,
+      ],
+      deny: [
+        PermissionFlagsBits.SendMessages, // Khóa chat trước khi xác nhận thanh toán
       ],
     },
     {
@@ -202,9 +204,24 @@ async function lockTicketChannelPermissions(channel, customerId) {
   }
 }
 
+/**
+ * Mở quyền gửi tin nhắn của khách hàng sau khi Staff xác nhận ĐÃ THANH TOÁN
+ */
+async function unlockTicketChannelPermissions(channel, customerId) {
+  if (!channel) return;
+  try {
+    await channel.permissionOverwrites.edit(customerId, {
+      SendMessages: true,
+    });
+  } catch (err) {
+    logger.error("Lỗi khi mở quyền gửi tin nhắn của khách trong ticket:", err);
+  }
+}
+
 module.exports = {
   createTicketActionRows,
   createOrderTicketChannel,
   updateTicketInterface,
   lockTicketChannelPermissions,
+  unlockTicketChannelPermissions,
 };
