@@ -101,17 +101,17 @@ function createPaymentInstructionsEmbed(orderData) {
   const totalAmount = orderData.total_amount || orderData.totalAmount || 0;
   const totalDisplay = orderData.total_display || orderData.totalDisplay || formatCurrency(totalAmount);
 
-  const bankId = process.env.BANK_ID || "MB";
-  const bankNo = process.env.BANK_ACCOUNT_NO || "03456789";
-  const bankName = process.env.BANK_ACCOUNT_NAME || "SANDG CÀY THUÊ";
+  const bankId = process.env.BANK_ID || "TCB";
+  const bankNo = process.env.BANK_ACCOUNT_NO || "Chưa cấu hình STK";
+  const bankName = process.env.BANK_ACCOUNT_NAME || "SANDG SHOP";
 
-  // VietQR Dynamic URL (chuẩn VietQR)
+  // VietQR Dynamic URL (chuẩn VietQR Techcombank)
   const qrUrl = `https://img.vietqr.io/image/${bankId}-${bankNo}-compact2.png?amount=${totalAmount}&addInfo=${orderCode}&accountName=${encodeURIComponent(bankName)}`;
 
   const embed = createBaseEmbed(
     `💳 HƯỚNG DẪN THANH TOÁN QUÉT MÃ QR — ${orderCode}`,
-    `Quý khách vui lòng chuyển khoản theo thông tin bên dưới hoặc **QUÉT MÃ QR** để thanh toán tự động:\n\n` +
-      `🏛️ **Ngân hàng**: \`${bankId}\`\n` +
+    `Quý khách vui lòng chuyển khoản theo thông tin **Techcombank** bên dưới hoặc **QUÉT MÃ QR** để thanh toán tự động:\n\n` +
+      `🏛️ **Ngân hàng**: \`Techcombank (${bankId})\`\n` +
       `💳 **Số tài khoản**: \`${bankNo}\`\n` +
       `👤 **Chủ tài khoản**: \`${bankName}\`\n` +
       `📌 **Nội dung chuyển khoản (bắt buộc)**: \`${orderCode}\`\n` +
@@ -120,7 +120,9 @@ function createPaymentInstructionsEmbed(orderData) {
     COLORS.WARNING
   );
 
-  embed.setImage(qrUrl);
+  if (process.env.BANK_ACCOUNT_NO) {
+    embed.setImage(qrUrl);
+  }
 
   return embed;
 }

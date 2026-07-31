@@ -11,7 +11,7 @@ client.once("ready", async () => {
   const channels = await guild.channels.fetch();
 
   let targetChannel = null;
-  for (const [id, ch] of channels) {
+  for (const [, ch] of channels) {
     if (ch.name.includes("nội-quy") && ch.type === 0) {
       targetChannel = ch;
       break;
