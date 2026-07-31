@@ -74,24 +74,25 @@ function createTicketMainEmbed(orderData) {
   const statusLabel = STATUS_LABELS[status] || status;
   const statusColor = STATUS_COLORS[status] || COLORS.PRIMARY;
 
+  const chatStatusText = (status === "PENDING" || status === "ACCEPTED")
+    ? "🔴 Đang khóa chat (Chờ Staff bấm 'ĐÃ THANH TOÁN')"
+    : "🟢 Đã mở chat riêng (Đã xác nhận thanh toán)";
+
   const embed = createBaseEmbed(
-    `📋 TICKET ĐƠN HÀNG [${orderCode}]`,
-    `Đơn hàng dịch vụ **${service.name}** trên hệ thống SandG.`,
+    `📋 BẢNG CHI TIẾT ĐƠN HÀNG [${orderCode}]`,
+    "Thông tin đơn hàng cày thuê dành cho Admin và Staff quản lý ở đầu trang ticket:",
     statusColor
   ).addFields(
     { name: "🔖 Mã đơn hàng", value: `\`${orderCode}\``, inline: true },
-    { name: "📌 Trạng thái", value: `**${statusLabel}**`, inline: true },
-    { name: "👤 Khách hàng", value: `<@${customerId}> (${customerUsername})`, inline: true },
-    { name: "📦 Dịch vụ", value: String(service.name), inline: true },
-    { name: "🔢 Số lượng", value: `${quantity} ${service.unitLabel}`, inline: true },
-    { name: "💰 Tổng tiền", value: `**${totalDisplay}**`, inline: true },
+    { name: "📌 Trạng thái đơn", value: `**${statusLabel}**`, inline: true },
+    { name: "👤 Khách hàng đặt", value: `<@${customerId}>\n\`${customerUsername}\` (ID: ${customerId})`, inline: true },
+    { name: "📦 Dịch vụ cày thuê", value: `**${service.name}**`, inline: true },
+    { name: "🔢 Số lượng", value: `**${quantity}** (${service.unitLabel})`, inline: true },
+    { name: "💰 Tổng tiền thanh toán", value: `**${totalDisplay}**`, inline: true },
     { name: "⏰ Thời gian mong muốn", value: String(expectedTime), inline: true },
-    { name: "📝 Ghi chú", value: String(note), inline: true },
-    {
-      name: "👨‍💻 Nhân viên xử lý",
-      value: staffId ? `<@${staffId}>` : "*Chưa có ai nhận đơn*",
-      inline: true,
-    }
+    { name: "📝 Ghi chú từ khách", value: String(note), inline: true },
+    { name: "👨‍💻 Staff tiếp nhận", value: staffId ? `<@${staffId}>` : "*Chưa có nhân viên nhận đơn*", inline: true },
+    { name: "🔒 Trạng thái chat riêng", value: chatStatusText, inline: false }
   );
 
   return embed;
