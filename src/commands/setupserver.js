@@ -1,6 +1,7 @@
 /**
- * Slash Command: /setup-server (hoặc /build-server)
+ * Slash Command: /setup-server
  * Tự động tạo và sắp xếp lại toàn bộ Kênh & Danh mục Discord Server chuẩn 5 sao chuyên nghiệp
+ * Hỗ trợ tham số xoa_kenh_cu: True để dọn dẹp sạch sẽ các kênh cũ rác.
  */
 
 const {
@@ -21,6 +22,12 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("setup-server")
     .setDescription("Tự động thiết lập lại toàn bộ Kênh & Danh mục Server chuẩn chuyên nghiệp 5 sao")
+    .addBooleanOption((option) =>
+      option
+        .setName("xoa_kenh_cu")
+        .setDescription("Chọn True nếu bạn muốn Bot tự động XÓA sạch các kênh rác cũ trước khi tạo giao diện mới.")
+        .setRequired(false)
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
@@ -34,8 +41,19 @@ module.exports = {
     await interaction.deferReply();
 
     const guild = interaction.guild;
+    const shouldDeleteOld = interaction.options.getBoolean("xoa_kenh_cu") || false;
 
     try {
+      // 0. NẾU CHỌN XÓA KÊNH CŨ: XÓA TẤT CẢ CÁC KÊNH VÀ DANH MỤC CŨ (TRỪ KÊNH HIỆN TẠI)
+      if (shouldDeleteOld) {
+        const channels = await guild.channels.fetch();
+        for (const [id, ch] of channels) {
+          if (id !== interaction.channelId && ch.deletable) {
+            await ch.delete().catch((err) => logger.warn(`Không thể xóa kênh cũ ${ch.name}: ${err.message}`));
+          }
+        }
+      }
+
       // 1. DANH MỤC THÔNG BÁO
       const catNotice = await guild.channels.create({
         name: "╭━━━━━━ 📢 THÔNG BÁO ━━━━━━╮",
@@ -170,7 +188,8 @@ module.exports = {
           `📁 **Kênh Log**: <#${chLog.id}>\n\n` +
           `📌 **Cấu hình tự động ghi nhận**:\n` +
           `• ID Danh mục cày thuê: \`${catOrder.id}\`\n` +
-          `• ID Kênh Log: \`${chLog.id}\``
+          `• ID Kênh Log: \`${chLog.id}\`` +
+          (shouldDeleteOld ? "\n\n🧹 *Đã dọn dẹp toàn bộ các kênh cũ rác theo yêu cầu.*" : "")
       );
 
       await interaction.editReply({
