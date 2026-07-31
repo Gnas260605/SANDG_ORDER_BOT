@@ -49,35 +49,47 @@ function createOrderPreviewEmbed(orderData) {
     { name: "🏷️ Đơn giá", value: unitPriceFormatted, inline: true },
     { name: "🔢 Số lượng", value: `${orderData.quantity} ${service.unitLabel}`, inline: true },
     { name: "💰 Tổng thanh toán", value: `**${totalFormatted}**`, inline: true },
-    { name: "⏰ Thời gian mong muốn", value: orderData.expectedTime || "Càng sớm càng tốt", inline: true },
-    { name: "📝 Ghi chú", value: orderData.note || "Không có", inline: false }
+    { name: "⏰ Thời gian mong muốn", value: String(orderData.expectedTime || "Càng sớm càng tốt"), inline: true },
+    { name: "📝 Ghi chú", value: String(orderData.note || "Không có"), inline: false }
   );
 }
 
 /**
- * Embed thông tin đơn hàng chính hiển thị trong Ticket Channel
+ * Embed thông tin đơn hàng chính hiển thị trong Ticket Channel (Hỗ trợ cả snake_case và camelCase)
  */
 function createTicketMainEmbed(orderData) {
-  const service = SERVICES[orderData.serviceCode] || { name: orderData.serviceName || orderData.serviceCode, unitLabel: "Đơn vị" };
-  const statusLabel = STATUS_LABELS[orderData.status] || orderData.status;
-  const statusColor = STATUS_COLORS[orderData.status] || COLORS.PRIMARY;
+  const orderCode = orderData.order_code || orderData.orderCode || "SANDG-0000";
+  const customerId = orderData.customer_id || orderData.customerId || "0";
+  const customerUsername = orderData.customer_username || orderData.customerUsername || "Khách hàng";
+  const serviceCode = orderData.service_code || orderData.serviceCode;
+  const serviceName = orderData.service_name || orderData.serviceName || serviceCode;
+  const quantity = orderData.quantity || 1;
+  const totalDisplay = orderData.total_display || orderData.totalDisplay || "0 VNĐ";
+  const expectedTime = orderData.expected_time || orderData.expectedTime || "Chưa xác định";
+  const note = orderData.note || "Không có";
+  const status = orderData.status || "PENDING";
+  const staffId = orderData.staff_id || orderData.staffId;
+
+  const service = SERVICES[serviceCode] || { name: serviceName, unitLabel: "Đơn vị" };
+  const statusLabel = STATUS_LABELS[status] || status;
+  const statusColor = STATUS_COLORS[status] || COLORS.PRIMARY;
 
   const embed = createBaseEmbed(
-    `📋 TICKET ĐƠN HÀNG [${orderData.orderCode}]`,
+    `📋 TICKET ĐƠN HÀNG [${orderCode}]`,
     `Đơn hàng dịch vụ **${service.name}** trên hệ thống SandG.`,
     statusColor
   ).addFields(
-    { name: "🔖 Mã đơn hàng", value: `\`${orderData.orderCode}\``, inline: true },
+    { name: "🔖 Mã đơn hàng", value: `\`${orderCode}\``, inline: true },
     { name: "📌 Trạng thái", value: `**${statusLabel}**`, inline: true },
-    { name: "👤 Khách hàng", value: `<@${orderData.customerId}> (${orderData.customerUsername})`, inline: true },
-    { name: "📦 Dịch vụ", value: service.name, inline: true },
-    { name: "🔢 Số lượng", value: `${orderData.quantity} ${service.unitLabel}`, inline: true },
-    { name: "💰 Tổng tiền", value: `**${orderData.totalDisplay}**`, inline: true },
-    { name: "⏰ Thời gian mong muốn", value: orderData.expectedTime || "Chưa xác định", inline: true },
-    { name: "📝 Ghi chú", value: orderData.note || "Không có", inline: true },
+    { name: "👤 Khách hàng", value: `<@${customerId}> (${customerUsername})`, inline: true },
+    { name: "📦 Dịch vụ", value: String(service.name), inline: true },
+    { name: "🔢 Số lượng", value: `${quantity} ${service.unitLabel}`, inline: true },
+    { name: "💰 Tổng tiền", value: `**${totalDisplay}**`, inline: true },
+    { name: "⏰ Thời gian mong muốn", value: String(expectedTime), inline: true },
+    { name: "📝 Ghi chú", value: String(note), inline: true },
     {
       name: "👨‍💻 Nhân viên xử lý",
-      value: orderData.staffId ? `<@${orderData.staffId}>` : "*Chưa có ai nhận đơn*",
+      value: staffId ? `<@${staffId}>` : "*Chưa có ai nhận đơn*",
       inline: true,
     }
   );
@@ -89,27 +101,38 @@ function createTicketMainEmbed(orderData) {
  * Embed xem chi tiết trạng thái đơn (/donhang)
  */
 function createOrderStatusEmbed(orderData) {
-  const statusLabel = STATUS_LABELS[orderData.status] || orderData.status;
-  const statusColor = STATUS_COLORS[orderData.status] || COLORS.PRIMARY;
+  const orderCode = orderData.order_code || orderData.orderCode || "SANDG-0000";
+  const customerId = orderData.customer_id || orderData.customerId || "0";
+  const serviceName = orderData.service_name || orderData.serviceName || "Dịch vụ";
+  const quantity = orderData.quantity || 1;
+  const totalDisplay = orderData.total_display || orderData.totalDisplay || "0 VNĐ";
+  const expectedTime = orderData.expected_time || orderData.expectedTime || "Không";
+  const status = orderData.status || "PENDING";
+  const staffId = orderData.staff_id || orderData.staffId;
+  const ticketChannelId = orderData.ticket_channel_id || orderData.ticketChannelId;
+  const createdAt = orderData.created_at || orderData.createdAt || new Date().toISOString();
+
+  const statusLabel = STATUS_LABELS[status] || status;
+  const statusColor = STATUS_COLORS[status] || COLORS.PRIMARY;
 
   const embed = createBaseEmbed(
-    `🔍 CHI TIẾT ĐƠN HÀNG [${orderData.orderCode}]`,
+    `🔍 CHI TIẾT ĐƠN HÀNG [${orderCode}]`,
     null,
     statusColor
   ).addFields(
-    { name: "🔖 Mã đơn", value: `\`${orderData.orderCode}\``, inline: true },
+    { name: "🔖 Mã đơn", value: `\`${orderCode}\``, inline: true },
     { name: "📌 Trạng thái", value: `**${statusLabel}**`, inline: true },
-    { name: "👤 Khách hàng", value: `<@${orderData.customerId}>`, inline: true },
-    { name: "📦 Dịch vụ", value: orderData.serviceName, inline: true },
-    { name: "🔢 Số lượng", value: `${orderData.quantity}`, inline: true },
-    { name: "💰 Tổng tiền", value: `**${orderData.totalDisplay}**`, inline: true },
-    { name: "⏰ Thời gian mong muốn", value: orderData.expectedTime || "Không", inline: true },
-    { name: "👨‍💻 Nhân viên", value: orderData.staffId ? `<@${orderData.staffId}>` : "Chưa nhận", inline: true },
-    { name: "📅 Ngày tạo", value: `<t:${Math.floor(new Date(orderData.createdAt).getTime() / 1000)}:F>`, inline: false }
+    { name: "👤 Khách hàng", value: `<@${customerId}>`, inline: true },
+    { name: "📦 Dịch vụ", value: String(serviceName), inline: true },
+    { name: "🔢 Số lượng", value: `${quantity}`, inline: true },
+    { name: "💰 Tổng tiền", value: `**${totalDisplay}**`, inline: true },
+    { name: "⏰ Thời gian mong muốn", value: String(expectedTime), inline: true },
+    { name: "👨‍💻 Nhân viên", value: staffId ? `<@${staffId}>` : "Chưa nhận", inline: true },
+    { name: "📅 Ngày tạo", value: `<t:${Math.floor(new Date(createdAt).getTime() / 1000)}:F>`, inline: false }
   );
 
-  if (orderData.ticketChannelId) {
-    embed.addFields({ name: "💬 Kênh Ticket", value: `<#${orderData.ticketChannelId}>`, inline: true });
+  if (ticketChannelId) {
+    embed.addFields({ name: "💬 Kênh Ticket", value: `<#${ticketChannelId}>`, inline: true });
   }
 
   return embed;
