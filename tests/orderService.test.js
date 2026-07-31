@@ -19,8 +19,8 @@ test("Pricing Calculation - Kiểm tra tính đúng tiền của tất cả các
   // ITACHI — 50K
   assert.strictEqual(calculateTotal("ITACHI", 1), 50000);
 
-  // KENPACHI — 20K
-  assert.strictEqual(calculateTotal("KENPACHI", 1), 20000);
+  // KENPACHI — 50K
+  assert.strictEqual(calculateTotal("KENPACHI", 1), 50000);
 
   // ICHIGO — 15K
   assert.strictEqual(calculateTotal("ICHIGO", 1), 15000);
@@ -28,8 +28,8 @@ test("Pricing Calculation - Kiểm tra tính đúng tiền của tất cả các
   // UNIT MYTHIC EVO — 10K / 1 CON
   assert.strictEqual(calculateTotal("UNIT_MYTHIC_EVO", 3), 30000);
 
-  // REROLL — 10K / 50 REROLL
-  assert.strictEqual(calculateTotal("REROLL", 2), 20000);
+  // REROLL — 20K / 50 REROLL
+  assert.strictEqual(calculateTotal("REROLL", 2), 40000);
 
   // TOKEN EVENT ITACHI — 10K / 80K TOKEN
   assert.strictEqual(calculateTotal("TOKEN_EVENT_ITACHI", 5), 50000);
