@@ -1,27 +1,24 @@
-# 🌐 HƯỚNG DẪN DEPLOY FREE 24/7 LÊN RENDER.COM & KOYEB.COM
+# 🌐 HƯỚNG DẪN DEPLOY FREE 100% LÊN RENDER.COM (GÓI WEB SERVICE $0/MONTH)
 
-Khi dùng thử Railway bị hết hạn (**Trial expired**), bạn có thể chuyển sang sử dụng các nền tảng đám mây **HOÀN TOÀN MIỄN PHÍ** dưới đây để treo Discord Bot 24/7 không tốn tiền.
+Khi chọn loại "Background Worker" trên Render, hệ thống sẽ báo giá $7/tháng. Tuy nhiên, trên Render có gói **Web Service** hoàn toàn **MIỄN PHÍ ($0/month)**!
+
+Dự án đã được tích hợp sẵn một **Web Healthcheck Server** phụ trợ, giúp bạn chọn gói **Web Service Free** chạy mượt mà 24/7 mà **KHÔNG TỐN MỘT XU NÀO**.
 
 ---
 
-## 🌟 LỰA CHỌN 1: DEPLOY LÊN RENDER.COM (KHUYÊN DÙNG)
+## 🌟 CÁC BƯỚC CHỌN GÓI MIỄN PHÍ TRÊN RENDER.COM
 
-Render cung cấp gói **Free Tier** kết nối trực tiếp với GitHub vô cùng tiện lợi.
-
-### Các bước thực hiện trên Render:
-
-1. Truy cập [https://render.com](https://render.com) và đăng ký/đăng nhập bằng tài khoản **GitHub**.
-2. Tại trang Dashboard, bấm nút **New +** ở góc trên bên phải ➔ Chọn **Background Worker** (dành cho bot không cần cổng web) hoặc **Web Service**.
-3. Chọn Repository: `Gnas260605/SANDG_ORDER_BOT`.
-4. Điền các thông tin cấu hình:
+1. Trên giao diện Render.com, bấm nút **New +** ở góc trên bên phải ➔ Chọn **Web Service** (thay vì chọn Background Worker).
+2. Chọn Repository của bạn: **`Gnas260605/SANDG_ORDER_BOT`**.
+3. Điền các thông tin:
    - **Name**: `sandg-order-bot`
    - **Region**: Singapore (hoặc Oregon/Frankfurt)
    - **Branch**: `main`
    - **Runtime**: `Node`
    - **Build Command**: `npm install`
-   - **Start Command**: `npm start` (hoặc `node scripts/deploy-commands.js && node src/index.js`)
-   - **Instance Type**: Chọn **Free** ($0/month).
-5. Kéo xuống mục **Environment Variables** ➔ Bấm **Add Environment Variable** để thêm từng biến môi trường:
+   - **Start Command**: `node scripts/deploy-commands.js && node src/index.js` (hoặc `npm start`)
+4. Tại mục **Instance Type**: Cuộn xuống chọn **Free** (**$0 / month**).
+5. Kéo xuống mục **Environment Variables** ➔ Bấm **Add Environment Variable** để nhập các biến:
    - `DISCORD_TOKEN`
    - `CLIENT_ID`
    - `GUILD_ID`
@@ -30,44 +27,17 @@ Render cung cấp gói **Free Tier** kết nối trực tiếp với GitHub vô 
    - `ORDER_CATEGORY_ID`
    - `LOG_CHANNEL_ID`
    - `SANDG_LOGO_URL`
-6. Bấm **Create Background Worker**. Render sẽ tự động kéo code từ GitHub về, cài đặt và khởi chạy bot!
+6. Bấm **Create Web Service**. Bot sẽ được khởi chạy hoàn toàn **MIỄN PHÍ**!
 
 ---
 
-## ⚡ LỰA CHỌN 2: DEPLOY LÊN KOYEB.COM (CỰC KỲ MẠNH & MIỄN PHÍ)
+## 🚀 CÁC PHƯƠNG ÁN MIỄN PHÍ KHÁC
 
-Koyeb cung cấp instance Nano **Miễn phí 24/7** chạy mượt mà.
+### 1. Koyeb.com (Free Tier 24/7)
+- Chọn **Free Nano** ($0/tháng).
+- Đăng nhập với GitHub ➔ Chọn repo `Gnas260605/SANDG_ORDER_BOT` ➔ Điền Environment Variables ➔ Deploy.
 
-### Các bước thực hiện trên Koyeb:
-
-1. Truy cập [https://www.koyeb.com](https://www.koyeb.com) và đăng ký bằng tài khoản **GitHub**.
-2. Tại Dashboard, bấm **Create App**.
-3. Chọn **GitHub** làm nguồn deployment ➔ Chọn repo `Gnas260605/SANDG_ORDER_BOT`.
-4. Tại phần Builder, giữ nguyên **Buildpack** (Node.js).
-5. Thêm các **Environment Variables** (Tương tự như danh sách biến ở trên).
-6. Mục Instance Type: Chọn **Free Nano**.
-7. Bấm **Deploy**. Bot sẽ được kích hoạt trực tuyến 24/7!
-
----
-
-## 💻 LỰA CHỌN 3: TREO BOT TRÊN MÁY TÍNH LOCAL BẰNG PM2 (KHÔNG CẦN CLOUD)
-
-Nếu bạn muốn chạy bot ngay trên máy tính của mình mà không lo văng chương trình khi đóng PowerShell:
-
-1. Mở **PowerShell** (Run as Administrator) tại thư mục dự án và cài đặt `pm2`:
-   ```powershell
-   npm install -g pm2
-   ```
-
-2. Khởi chạy bot ngầm bằng `pm2`:
-   ```powershell
-   cd d:\Individua_Project\sandg-order-bot
-   pm2 start src/index.js --name "sandg-bot"
-   ```
-
-3. Kiểm tra trạng thái và quản lý bot:
-   ```powershell
-   pm2 list       # Xem danh sách ứng dụng đang chạy ngầm
-   pm2 logs       # Xem log trực tiếp của bot
-   pm2 restart sandg-bot  # Khởi động lại bot
-   ```
+### 2. Treo ngầm trên máy PC local với PM2
+- Không tốn tiền hosting cloud.
+- Mở PowerShell: `npm install -g pm2`
+- Chạy: `pm2 start src/index.js --name "sandg-bot"`

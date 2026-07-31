@@ -63,6 +63,17 @@ if (isVerifyOnly || isDummyToken) {
   try {
     runMigrations();
     logger.info(`✅ [CONFIG CHECK SUCCESS] Đã khởi tạo SQLite DB, ${client.commands.size} commands và event handlers thành công!`);
+
+    // Khởi chạy Web Health Check server phụ trợ cho Render Web Service (Free Tier $0/month)
+    const http = require("http");
+    const PORT = process.env.PORT || 3000;
+    http.createServer((req, res) => {
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("SandG Order Bot is Online 24/7!");
+    }).listen(PORT, () => {
+      logger.info(`🌐 Web Healthcheck Server đang lắng nghe tại cổng [${PORT}] (Free Web Service)`);
+    });
+
     if (isVerifyOnly) {
       process.exit(0);
     }
@@ -71,6 +82,16 @@ if (isVerifyOnly || isDummyToken) {
     process.exit(1);
   }
 } else {
+  // Khởi chạy Web Health Check server cho Render Web Service (Free Tier $0/month)
+  const http = require("http");
+  const PORT = process.env.PORT || 3000;
+  http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("SandG Order Bot is Online 24/7!");
+  }).listen(PORT, () => {
+    logger.info(`🌐 Web Healthcheck Server đang lắng nghe tại cổng [${PORT}] (Render Free Tier)`);
+  });
+
   // Đăng nhập kết nối với Discord Gateway
   client.login(token).catch((err) => {
     logger.error("❌ Lỗi khi đăng nhập bot Discord:", err.message);
