@@ -9,7 +9,6 @@ const {
   PermissionsBitField,
 } = require("discord.js");
 const { createErrorEmbed, createSuccessEmbed } = require("../utils/embeds");
-const { isAdmin } = require("../utils/permissions");
 const logger = require("../utils/logger");
 
 module.exports = {
@@ -19,28 +18,39 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
-    if (!isAdmin(interaction.member)) {
-      return interaction.reply({
-        embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Administrator mới có thể khởi tạo Vai Trò.")],
-        ephemeral: true,
-      });
-    }
-
+    // Defer trước để tránh timeout (phải làm trong 3 giây đầu tiên)
     await interaction.deferReply({ ephemeral: true });
 
     const guild = interaction.guild;
 
-    // Dùng "colors" (không phải "color") theo discord.js v14+
+    // Kiểm tra Bot có quyền Manage Roles không
+    const botMember = guild.members.me;
+    if (!botMember || !botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            "❌ BOT THIẾU QUYỀN MANAGE ROLES",
+            `Bot chưa có quyền **Manage Roles (Quản Lý Vai Trò)**.\n\n` +
+              `**Cách cấp quyền:**\n` +
+              `1. Vào **Server Settings** → **Roles**\n` +
+              `2. Tìm role **bot-cay-thue** → Bật **Manage Roles**\n` +
+              `3. Kéo role Bot lên **trên cùng** danh sách Roles\n` +
+              `4. Gõ lại \`/setup-roles\``
+          ),
+        ],
+      });
+    }
+
     const rolesToCreate = [
       {
         name: "👑 Owner / Founder",
-        color: 0xFF1744,
+        color: 0xff1744,
         hoist: true,
         permissions: [PermissionsBitField.Flags.Administrator],
       },
       {
         name: "🛡️ Admin / Quản Trị",
-        color: 0xFF9100,
+        color: 0xff9100,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ManageChannels,
@@ -55,7 +65,7 @@ module.exports = {
       },
       {
         name: "👨‍💻 Staff / Cày Thuê Pro",
-        color: 0x7C4DFF,
+        color: 0x7c4dff,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ManageMessages,
@@ -68,7 +78,7 @@ module.exports = {
       },
       {
         name: "💎 VIP Client",
-        color: 0x00E5FF,
+        color: 0x00e5ff,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -80,7 +90,7 @@ module.exports = {
       },
       {
         name: "🛒 Khách Hàng SandG",
-        color: 0x00E676,
+        color: 0x00e676,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -90,7 +100,7 @@ module.exports = {
       },
       {
         name: "🔥 Dân Cày Chăm Chỉ",
-        color: 0xFFEA00,
+        color: 0xffea00,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -99,7 +109,7 @@ module.exports = {
       },
       {
         name: "🎮 Roblox Player",
-        color: 0x29B6F6,
+        color: 0x29b6f6,
         hoist: true,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -108,7 +118,7 @@ module.exports = {
       },
       {
         name: "⚡ Member / Thành Viên",
-        color: 0xCFD8DC,
+        color: 0xcfd8dc,
         hoist: false,
         permissions: [
           PermissionsBitField.Flags.ViewChannel,
@@ -134,13 +144,13 @@ module.exports = {
             color: roleConfig.color,
             hoist: roleConfig.hoist,
             permissions: roleConfig.permissions,
-            reason: "Khởi tạo hệ thống Role phân quyền chuyên nghiệp SandG",
+            reason: "Setup SandG Server Roles",
           });
           createdCount++;
           logger.info(`Đã tạo Role: ${role.name} (${role.id})`);
         } catch (err) {
           logger.error(`Lỗi tạo role ${roleConfig.name}:`, err);
-          errors.push(`• ${roleConfig.name}: ${err.message}`);
+          errors.push(`• ${roleConfig.name}`);
         }
       } else {
         existingCount++;
@@ -154,35 +164,19 @@ module.exports = {
     if (createdAdminRoleId) process.env.ADMIN_ROLE_ID = createdAdminRoleId;
     if (createdStaffRoleId) process.env.STAFF_ROLE_ID = createdStaffRoleId;
 
-    if (errors.length > 0 && createdCount === 0) {
-      await interaction.editReply({
-        embeds: [
-          createErrorEmbed(
-            "❌ THIẾT LẬP THẤT BẠI",
-            `Không thể tạo Role. Vui lòng:\n` +
-              `**1.** Vào **Cài đặt Server** → **Vai Trò** → Tìm Role Bot và bật **"Quản Lý Vai Trò"**\n` +
-              `**2.** Kéo Role của Bot lên **trên cùng** danh sách Roles\n` +
-              `**3.** Chạy lại lệnh \`/setup-roles\`\n\n` +
-              `Chi tiết lỗi:\n${errors.join("\n")}`
-          ),
-        ],
-      });
-      return;
-    }
-
     await interaction.editReply({
       embeds: [
         createSuccessEmbed(
-          "🎭 HOÀN TẤT KHỞI TẠO BỘ VAI TRÒ CHUYÊN NGHIỆP!",
-          `Bot đã tạo và phân quyền thành công các Vai Trò cho Server:\n\n` +
+          "🎭 HOÀN TẤT KHỞI TẠO BỘ VAI TRÒ!",
+          `Bot đã xử lý thành công các Vai Trò cho Server:\n\n` +
             `👑 **Owner / Founder** — Toàn quyền\n` +
             `🛡️ **Admin / Quản Trị** — Quản lý kênh & xử phạt\n` +
             `👨‍💻 **Staff / Cày Thuê Pro** — Tiếp nhận & cày đơn\n` +
             `💎 **VIP Client** — Khách hàng VIP\n` +
             `🛒 **Khách Hàng SandG** — Khách hàng thường\n` +
             `🔥 **Dân Cày Chăm Chỉ** & 🎮 **Roblox Player** & ⚡ **Member**\n\n` +
-            `📌 Đã tạo mới: **${createdCount}** role | Đã có sẵn: **${existingCount}** role` +
-            (errors.length > 0 ? `\n\n⚠️ Một số role lỗi:\n${errors.join("\n")}` : "")
+            `✅ Tạo mới: **${createdCount}** | Đã có: **${existingCount}**` +
+            (errors.length > 0 ? `\n\n⚠️ Bỏ qua (đã tồn tại hoặc lỗi): ${errors.join(", ")}` : "")
         ),
       ],
     });
