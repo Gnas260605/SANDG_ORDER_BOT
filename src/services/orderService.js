@@ -124,5 +124,6 @@ module.exports = {
   getOrderByCode: orderRepository.getOrderByCode,
   getOrderByChannelId: orderRepository.getOrderByChannelId,
   getUserRecentOrders: orderRepository.getUserRecentOrders,
+  getActiveOrderByCustomerId: orderRepository.getActiveOrderByCustomerId,
   updateTicketInfo: orderRepository.updateTicketInfo,
 };

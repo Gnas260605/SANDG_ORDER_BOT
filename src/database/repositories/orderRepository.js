@@ -138,6 +138,21 @@ function updateOrderStatus(orderId, status, staffId = null, timestampField = nul
   return getOrderById(orderId);
 }
 
+/**
+ * Lấy đơn hàng đang hoạt động (chưa hoàn thành / hủy) của khách hàng
+ */
+function getActiveOrderByCustomerId(customerId) {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT * FROM orders 
+    WHERE customer_id = ? 
+    AND status IN ('PENDING', 'ACCEPTED', 'PAID', 'PROCESSING')
+    AND ticket_channel_id IS NOT NULL
+    ORDER BY id DESC LIMIT 1
+  `);
+  return stmt.get(customerId) || null;
+}
+
 module.exports = {
   generateNextOrderCode,
   createOrder,
@@ -145,6 +160,7 @@ module.exports = {
   getOrderById,
   getOrderByChannelId,
   getUserRecentOrders,
-  updateTicketInfo,
+  getActiveOrderByCustomerId,
   updateOrderStatus,
+  updateTicketInfo,
 };
