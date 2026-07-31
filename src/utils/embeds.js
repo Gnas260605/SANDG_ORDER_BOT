@@ -74,10 +74,6 @@ function createTicketMainEmbed(orderData) {
   const statusLabel = STATUS_LABELS[status] || status;
   const statusColor = STATUS_COLORS[status] || COLORS.PRIMARY;
 
-  const chatStatusText = (status === "PENDING" || status === "ACCEPTED")
-    ? "🔴 Đang khóa chat (Chờ Staff bấm 'ĐÃ THANH TOÁN')"
-    : "🟢 Đã mở chat riêng (Đã xác nhận thanh toán)";
-
   const embed = createBaseEmbed(
     `📋 BẢNG CHI TIẾT ĐƠN HÀNG [${orderCode}]`,
     "Thông tin đơn hàng cày thuê dành cho Admin và Staff quản lý ở đầu trang ticket:",
@@ -91,9 +87,40 @@ function createTicketMainEmbed(orderData) {
     { name: "💰 Tổng tiền thanh toán", value: `**${totalDisplay}**`, inline: true },
     { name: "⏰ Thời gian mong muốn", value: String(expectedTime), inline: true },
     { name: "📝 Ghi chú từ khách", value: String(note), inline: true },
-    { name: "👨‍💻 Staff tiếp nhận", value: staffId ? `<@${staffId}>` : "*Chưa có nhân viên nhận đơn*", inline: true },
-    { name: "🔒 Trạng thái chat riêng", value: chatStatusText, inline: false }
+    { name: "👨‍💻 Staff tiếp nhận", value: staffId ? `<@${staffId}>` : "*Chưa có nhân viên nhận đơn*", inline: true }
   );
+
+  return embed;
+}
+
+/**
+ * Embed hướng dẫn thanh toán & hiển thị Mã QR VietQR của Admin
+ */
+function createPaymentInstructionsEmbed(orderData) {
+  const orderCode = orderData.order_code || orderData.orderCode || "SANDG-0000";
+  const totalAmount = orderData.total_amount || orderData.totalAmount || 0;
+  const totalDisplay = orderData.total_display || orderData.totalDisplay || formatCurrency(totalAmount);
+
+  const bankId = process.env.BANK_ID || "MB";
+  const bankNo = process.env.BANK_ACCOUNT_NO || "03456789";
+  const bankName = process.env.BANK_ACCOUNT_NAME || "SANDG CÀY THUÊ";
+
+  // VietQR Dynamic URL (chuẩn VietQR)
+  const qrUrl = `https://img.vietqr.io/image/${bankId}-${bankNo}-compact2.png?amount=${totalAmount}&addInfo=${orderCode}&accountName=${encodeURIComponent(bankName)}`;
+
+  const embed = createBaseEmbed(
+    `💳 HƯỚNG DẪN THANH TOÁN QUÉT MÃ QR — ${orderCode}`,
+    `Quý khách vui lòng chuyển khoản theo thông tin bên dưới hoặc **QUÉT MÃ QR** để thanh toán tự động:\n\n` +
+      `🏛️ **Ngân hàng**: \`${bankId}\`\n` +
+      `💳 **Số tài khoản**: \`${bankNo}\`\n` +
+      `👤 **Chủ tài khoản**: \`${bankName}\`\n` +
+      `📌 **Nội dung chuyển khoản (bắt buộc)**: \`${orderCode}\`\n` +
+      `💰 **Số tiền**: **${totalDisplay}**\n\n` +
+      `📸 **BƯỚC TIẾP THEO**: Sau khi chuyển khoản thành công, quý khách vui lòng **CHỤP HÌNH HÓA ĐƠN & GỬI VÀO KÊNH NÀY**. Admin sẽ kiểm tra hóa đơn và bấm nhận đơn ngay!`,
+    COLORS.WARNING
+  );
+
+  embed.setImage(qrUrl);
 
   return embed;
 }
@@ -222,6 +249,7 @@ module.exports = {
   createBaseEmbed,
   createOrderPreviewEmbed,
   createTicketMainEmbed,
+  createPaymentInstructionsEmbed,
   createOrderStatusEmbed,
   createMyOrdersEmbed,
   createPriceListEmbed,

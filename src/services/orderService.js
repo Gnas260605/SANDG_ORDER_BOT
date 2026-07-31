@@ -11,10 +11,10 @@ const { isStaff, isAdmin } = require("../utils/permissions");
  * Thứ tự chuyển trạng thái chuẩn của đơn hàng
  */
 const VALID_TRANSITIONS = {
-  [ORDER_STATUS.PENDING]: ORDER_STATUS.ACCEPTED,
-  [ORDER_STATUS.ACCEPTED]: ORDER_STATUS.PAID,
-  [ORDER_STATUS.PAID]: ORDER_STATUS.PROCESSING,
-  [ORDER_STATUS.PROCESSING]: ORDER_STATUS.COMPLETED,
+  [ORDER_STATUS.PENDING]: [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PROCESSING],
+  [ORDER_STATUS.ACCEPTED]: [ORDER_STATUS.PAID, ORDER_STATUS.PROCESSING],
+  [ORDER_STATUS.PAID]: [ORDER_STATUS.PROCESSING],
+  [ORDER_STATUS.PROCESSING]: [ORDER_STATUS.COMPLETED],
 };
 
 /**
@@ -35,14 +35,16 @@ function isValidStateTransition(currentStatus, targetStatus, member) {
   }
 
   // Chuyển trạng thái theo quy trình chuẩn
-  const expectedNext = VALID_TRANSITIONS[currentStatus];
-  if (expectedNext === targetStatus) {
+  const allowedNext = VALID_TRANSITIONS[currentStatus] || [];
+  const allowedList = Array.isArray(allowedNext) ? allowedNext : [allowedNext];
+
+  if (allowedList.includes(targetStatus)) {
     return { valid: true };
   }
 
   return {
     valid: false,
-    message: `Không thể chuyển trạng thái từ [${currentStatus}] sang [${targetStatus}]. Thứ tự hợp lệ là: PENDING ➔ ACCEPTED ➔ PAID ➔ PROCESSING ➔ COMPLETED.`,
+    message: `Không thể chuyển trạng thái từ [${currentStatus}] sang [${targetStatus}].`,
   };
 }
 

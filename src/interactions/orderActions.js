@@ -1,5 +1,6 @@
 /**
  * Interaction Handler - Xử lý các nút điều khiển trong Ticket của Staff & Admin
+ * Quy trình: Đặt đơn -> QR Admin -> User gửi ảnh thanh toán -> Admin nhận đơn -> Admin hoàn thành (tự đóng 30p)
  */
 
 const {
@@ -9,14 +10,12 @@ const {
 } = require("discord.js");
 const { CUSTOM_IDS, ORDER_STATUS } = require("../config/constants");
 const {
-  acceptOrder,
   updateStatus,
   getOrderByChannelId,
 } = require("../services/orderService");
 const {
   updateTicketInterface,
   lockTicketChannelPermissions,
-  unlockTicketChannelPermissions,
 } = require("../services/ticketService");
 const { sendTranscriptToLogChannel } = require("../services/transcriptService");
 const { isStaff, isAdmin } = require("../utils/permissions");
@@ -36,9 +35,16 @@ async function handleTicketActions(interaction) {
     });
   }
 
-  // 1. NÚT NHẬN ĐƠN (ACCEPTED)
+  // 1. NÚT ADMIN NHẬN ĐƠN & BẮT ĐẦU CÀY
   if (customId === CUSTOM_IDS.BTN_ACCEPT) {
-    const result = acceptOrder(order.id, interaction.member);
+    if (!isStaff(interaction.member) && !isAdmin(interaction.member)) {
+      return interaction.reply({
+        embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Admin/Staff mới có thể nhận đơn hàng.")],
+        ephemeral: true,
+      });
+    }
+
+    const result = updateStatus(order.id, ORDER_STATUS.PROCESSING, interaction.member);
     if (!result.success) {
       return interaction.reply({
         embeds: [createErrorEmbed("❌ LỖI NHẬN ĐƠN", result.message)],
@@ -49,69 +55,16 @@ async function handleTicketActions(interaction) {
     await interaction.deferUpdate();
     await updateTicketInterface(channel, order.main_message_id, result.order);
     await channel.send({
-      content: `🔔 Nhân viên <@${interaction.user.id}> đã tiếp nhận đơn hàng **${result.order.order_code}**! Quý khách vui lòng thanh toán theo hướng dẫn của Staff để mở kênh chat riêng.`,
+      content: `✅ **ADMIN / STAFF <@${interaction.user.id}> ĐÃ XÁC NHẬN CHUYỂN KHOẢN VÀ NHẬN ĐƠN!**\nQuý khách <@${order.customer_id}> vui lòng nhắn **Tên tài khoản & Mật khẩu Roblox** tại đây để Admin tiến hành cày nhé!`,
     });
     return;
   }
 
-  // 2. NÚT ĐÃ THANH TOÁN (PAID)
-  if (customId === CUSTOM_IDS.BTN_PAID) {
-    if (!isStaff(interaction.member)) {
-      return interaction.reply({
-        embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Nhân viên Staff mới có thể cập nhật trạng thái thanh toán.")],
-        ephemeral: true,
-      });
-    }
-
-    const result = updateStatus(order.id, ORDER_STATUS.PAID, interaction.member);
-    if (!result.success) {
-      return interaction.reply({
-        embeds: [createErrorEmbed("❌ CHUYỂN TRẠNG THÁI THẤT BẠI", result.message)],
-        ephemeral: true,
-      });
-    }
-
-    // Mở quyền gửi tin nhắn cho khách hàng
-    await unlockTicketChannelPermissions(channel, order.customer_id);
-
-    await interaction.deferUpdate();
-    await updateTicketInterface(channel, order.main_message_id, result.order);
-    await channel.send({
-      content: `💳 **ĐÃ XÁC NHẬN THANH TOÁN!**\nKênh chat riêng đã được mở cho <@${order.customer_id}>. Quý khách vui lòng gửi **Tên tài khoản & Mật khẩu Roblox** tại đây để Nhân viên bắt đầu cày!`,
-    });
-    return;
-  }
-
-  // 3. NÚT ĐANG THỰC HIỆN (PROCESSING)
-  if (customId === CUSTOM_IDS.BTN_PROCESSING) {
-    if (!isStaff(interaction.member)) {
-      return interaction.reply({
-        embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Nhân viên Staff mới có thể cập nhật trạng thái xử lý.")],
-        ephemeral: true,
-      });
-    }
-
-    const result = updateStatus(order.id, ORDER_STATUS.PROCESSING, interaction.member);
-    if (!result.success) {
-      return interaction.reply({
-        embeds: [createErrorEmbed("❌ CHUYỂN TRẠNG THÁI THẤT BẠI", result.message)],
-        ephemeral: true,
-      });
-    }
-
-    await interaction.deferUpdate();
-    await updateTicketInterface(channel, order.main_message_id, result.order);
-    await channel.send({
-      content: `⚙️ Dịch vụ của đơn hàng **${result.order.order_code}** đang được nhân viên cày!`,
-    });
-    return;
-  }
-
-  // 4. NÚT HOÀN THÀNH (COMPLETED)
+  // 2. NÚT ADMIN HOÀN THÀNH ĐƠN (TỰ ĐÓNG TICKET SAU 30 PHÚT)
   if (customId === CUSTOM_IDS.BTN_COMPLETE) {
-    if (!isStaff(interaction.member)) {
+    if (!isStaff(interaction.member) && !isAdmin(interaction.member)) {
       return interaction.reply({
-        embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Nhân viên Staff mới có thể xác nhận hoàn thành.")],
+        embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Admin/Staff mới có thể hoàn thành đơn hàng.")],
         ephemeral: true,
       });
     }
@@ -126,13 +79,34 @@ async function handleTicketActions(interaction) {
 
     await interaction.deferUpdate();
     await updateTicketInterface(channel, order.main_message_id, result.order);
+
+    const closeTimestamp = Math.floor((Date.now() + 30 * 60 * 1000) / 1000);
+
     await channel.send({
-      content: `🎉 Đơn hàng **${result.order.order_code}** đã **HOÀN THÀNH**! Cảm ơn khách hàng <@${order.customer_id}> đã tin tưởng dịch vụ SandG!`,
+      content:
+        `🎉 **ĐƠN HÀNG ĐÃ HOÀN THÀNH!**\n` +
+        `Admin <@${interaction.user.id}> đã đánh dấu **HOÀN THÀNH** cho đơn **${order.order_code}**!\n` +
+        `Cảm ơn quý khách <@${order.customer_id}> đã tin tưởng và sử dụng dịch vụ của SandG!\n\n` +
+        `⏳ **LƯU Ý**: Ticket này sẽ **tự động lưu Log và xóa kênh sau 30 phút** (vào lúc <t:${closeTimestamp}:T>).`,
     });
+
+    // Tự động đếm ngược 30 phút -> Tạo transcript -> Xóa kênh ticket
+    setTimeout(async () => {
+      try {
+        if (channel && channel.deletable) {
+          await sendTranscriptToLogChannel(interaction.guild, channel, result.order);
+          await channel.delete();
+          logger.info(`Đã tự động đóng & xóa ticket ${channel.name} sau 30 phút hoàn thành.`);
+        }
+      } catch (err) {
+        logger.error("Lỗi khi tự động xóa kênh ticket sau 30p:", err);
+      }
+    }, 30 * 60 * 1000);
+
     return;
   }
 
-  // 5. NÚT HỦY ĐƠN (CANCELLED)
+  // 3. NÚT HỦY ĐƠN (CANCELLED)
   if (customId === CUSTOM_IDS.BTN_CANCEL) {
     if (!isStaff(interaction.member) && !isAdmin(interaction.member)) {
       return interaction.reply({
@@ -157,24 +131,22 @@ async function handleTicketActions(interaction) {
     return;
   }
 
-  // 6. NÚT ĐÓNG TICKET (Yêu cầu xác nhận lần 2 & khóa chat)
+  // 4. NÚT ĐÓNG TICKET & LƯU LOG THỦ CÔNG
   if (customId === CUSTOM_IDS.BTN_CLOSE_TICKET) {
-    if (!isStaff(interaction.member)) {
+    if (!isStaff(interaction.member) && !isAdmin(interaction.member)) {
       return interaction.reply({
         embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Staff hoặc Admin mới được phép đóng Ticket.")],
         ephemeral: true,
       });
     }
 
-    // Khóa quyền gửi tin nhắn của khách trước
     await lockTicketChannelPermissions(channel, order.customer_id);
 
     const confirmEmbed = createBaseEmbed(
       "⚠️ XÁC NHẬN ĐÓNG TICKET",
       `Bạn có chắc chắn muốn đóng ticket đơn hàng **${order.order_code}** không?\n` +
         `• Kênh sẽ bị khóa chat.\n` +
-        `• File Transcript sẽ được tạo và gửi về Kênh Log.\n` +
-        `• Quản trị viên sau đó có thể xóa kênh thủ công.`,
+        `• File Transcript sẽ được tạo và gửi về Kênh Log hệ thống.`,
       require("../config/constants").COLORS.WARNING
     );
 
@@ -197,9 +169,9 @@ async function handleTicketActions(interaction) {
     return;
   }
 
-  // 7. XÁC NHẬN ĐÓNG TICKET LẦN 2
+  // 5. XÁC NHẬN ĐÓNG TICKET LẦN 2
   if (customId === CUSTOM_IDS.BTN_CONFIRM_CLOSE) {
-    if (!isStaff(interaction.member)) {
+    if (!isStaff(interaction.member) && !isAdmin(interaction.member)) {
       return interaction.reply({
         embeds: [createErrorEmbed("❌ KHÔNG CÓ QUYỀN", "Chỉ Staff mới được xác nhận đóng ticket.")],
         ephemeral: true,
@@ -230,13 +202,13 @@ async function handleTicketActions(interaction) {
     return;
   }
 
-  // 8. HỦY THAO TÁC ĐÓNG TICKET
+  // 6. HỦY THAO TÁC ĐÓNG TICKET
   if (customId === CUSTOM_IDS.BTN_CANCEL_CLOSE) {
     await interaction.message.delete().catch(() => {});
     return;
   }
 
-  // 9. NÚT XÓA KÊNH THỦ CÔNG (ADMIN & STAFF)
+  // 7. NÚT XÓA KÊNH THỦ CÔNG (ADMIN & STAFF)
   if (customId === CUSTOM_IDS.BTN_DELETE_CHANNEL) {
     if (!isAdmin(interaction.member) && !isStaff(interaction.member)) {
       return interaction.reply({

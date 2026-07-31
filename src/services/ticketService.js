@@ -10,41 +10,38 @@ const {
   ButtonStyle,
 } = require("discord.js");
 const { CUSTOM_IDS, ORDER_STATUS } = require("../config/constants");
-const { createTicketMainEmbed } = require("../utils/embeds");
+const { createTicketMainEmbed, createPaymentInstructionsEmbed } = require("../utils/embeds");
 const logger = require("../utils/logger");
 
 /**
- * Tạo danh sách hàng nút bấm (ActionRows) điều khiển Ticket tùy theo trạng thái đơn hàng
+ * Tạo danh sách hàng nút bấm (ActionRows) điều khiển Ticket theo Quy trình:
+ * 1. Đặt đơn -> Hiện QR Admin
+ * 2. User gửi ảnh hóa đơn
+ * 3. Admin bấm "NHẬN ĐƠN & BẮT ĐẦU CÀY"
+ * 4. Admin bấm "HOÀN THÀNH (TỰ ĐÓNG SAU 30P)"
  */
 function createTicketActionRows(status) {
-  const isFinished = status === ORDER_STATUS.COMPLETED || status === ORDER_STATUS.CANCELLED;
+  const isCompleted = status === ORDER_STATUS.COMPLETED;
+  const isCancelled = status === ORDER_STATUS.CANCELLED;
+  const isFinished = isCompleted || isCancelled;
 
+  // Nút 1: Admin Nhận Đơn & Bắt đầu cày (Dành cho PENDING)
   const btnAccept = new ButtonBuilder()
     .setCustomId(CUSTOM_IDS.BTN_ACCEPT)
-    .setLabel("NHẬN ĐƠN")
-    .setStyle(ButtonStyle.Primary)
+    .setLabel("✅ NHẬN ĐƠN & BẮT ĐẦU CÀY")
+    .setStyle(ButtonStyle.Success)
     .setDisabled(status !== ORDER_STATUS.PENDING || isFinished);
 
-  const btnPaid = new ButtonBuilder()
-    .setCustomId(CUSTOM_IDS.BTN_PAID)
-    .setLabel("ĐÃ THANH TOÁN")
-    .setStyle(ButtonStyle.Success)
-    .setDisabled(status !== ORDER_STATUS.ACCEPTED || isFinished);
-
-  const btnProcessing = new ButtonBuilder()
-    .setCustomId(CUSTOM_IDS.BTN_PROCESSING)
-    .setLabel("ĐANG THỰC HIỆN")
-    .setStyle(ButtonStyle.Primary)
-    .setDisabled(status !== ORDER_STATUS.PAID || isFinished);
-
+  // Nút 2: Admin Ấn Hoàn Thành (Dành cho PROCESSING / ACCEPTED)
   const btnComplete = new ButtonBuilder()
     .setCustomId(CUSTOM_IDS.BTN_COMPLETE)
-    .setLabel("HOÀN THÀNH")
-    .setStyle(ButtonStyle.Success)
-    .setDisabled(status !== ORDER_STATUS.PROCESSING || isFinished);
+    .setLabel("🎉 HOÀN THÀNH (TỰ ĐÓNG SAU 30P)")
+    .setStyle(ButtonStyle.Primary)
+    .setDisabled(status === ORDER_STATUS.PENDING || isFinished);
 
-  const row1 = new ActionRowBuilder().addComponents(btnAccept, btnPaid, btnProcessing, btnComplete);
+  const row1 = new ActionRowBuilder().addComponents(btnAccept, btnComplete);
 
+  // Hàng nút phụ: Hủy đơn, Đóng ticket & Lưu Log, Xóa kênh
   const btnCancel = new ButtonBuilder()
     .setCustomId(CUSTOM_IDS.BTN_CANCEL)
     .setLabel("🚫 HUỶ ĐƠN")
@@ -82,7 +79,7 @@ async function createOrderTicketChannel(guild, orderData) {
 
   const channelName = sanitizeChannelName(orderData.order_code || orderData.orderCode);
 
-  // Cấu hình phân quyền riêng tư cho ticket
+  // Cấu hình phân quyền riêng tư cho ticket (Khách có quyền gửi tin nhắn & ảnh chuyển khoản ngay!)
   const permissionOverwrites = [
     {
       id: guild.roles.everyone.id,
@@ -92,12 +89,10 @@ async function createOrderTicketChannel(guild, orderData) {
       id: orderData.customer_id || orderData.customerId,
       allow: [
         PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
         PermissionFlagsBits.ReadMessageHistory,
         PermissionFlagsBits.EmbedLinks,
         PermissionFlagsBits.AttachFiles,
-      ],
-      deny: [
-        PermissionFlagsBits.SendMessages, // Khóa chat trước khi xác nhận thanh toán
       ],
     },
     {
@@ -157,13 +152,14 @@ async function createOrderTicketChannel(guild, orderData) {
 
   const ticketChannel = await guild.channels.create(channelOptions);
 
-  // Gửi Embed thông tin đơn hàng chính vào ticket
-  const embed = createTicketMainEmbed(orderData);
+  // Gửi Embed thông tin đơn hàng chính + Hướng dẫn quét mã QR thanh toán
+  const mainEmbed = createTicketMainEmbed(orderData);
+  const paymentEmbed = createPaymentInstructionsEmbed(orderData);
   const actionRows = createTicketActionRows(orderData.status);
 
   const mainMessage = await ticketChannel.send({
-    content: `Chào <@${orderData.customer_id || orderData.customerId}>, ticket đơn hàng của bạn đã được khởi tạo! Nhân viên SandG sẽ phản hồi bạn sớm nhất.`,
-    embeds: [embed],
+    content: `👋 Chào <@${orderData.customer_id || orderData.customerId}>, ticket đơn hàng của bạn đã được khởi tạo thành công!`,
+    embeds: [mainEmbed, paymentEmbed],
     components: actionRows,
   });
 
@@ -180,14 +176,15 @@ async function updateTicketInterface(channel, mainMessageId, orderData) {
   if (!channel) return;
 
   try {
-    const message = await channel.messages.fetch(mainMessageId);
+    const message = await channel.messages.fetch(mainMessageId).catch(() => null);
     if (!message) return;
 
-    const embed = createTicketMainEmbed(orderData);
+    const mainEmbed = createTicketMainEmbed(orderData);
+    const paymentEmbed = createPaymentInstructionsEmbed(orderData);
     const actionRows = createTicketActionRows(orderData.status);
 
     await message.edit({
-      embeds: [embed],
+      embeds: [mainEmbed, paymentEmbed],
       components: actionRows,
     });
   } catch (err) {
@@ -210,7 +207,7 @@ async function lockTicketChannelPermissions(channel, customerId) {
 }
 
 /**
- * Mở quyền gửi tin nhắn của khách hàng sau khi Staff xác nhận ĐÃ THANH TOÁN
+ * Mở quyền gửi tin nhắn của khách hàng
  */
 async function unlockTicketChannelPermissions(channel, customerId) {
   if (!channel) return;
